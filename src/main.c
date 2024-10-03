@@ -1,5 +1,7 @@
+#include <signal.h>
 #include <stdio.h>
 #include <string.h>
+
 #include "daemon.h"
 
 int main(int argc, char *argv[]) {
@@ -9,7 +11,11 @@ int main(int argc, char *argv[]) {
             if (argc > 2 && strcmp(argv[2], "--force") == 0) {
                 force = 1;
             }
-            start_daemon(force);
+
+            signal(2, daemon_signal_handler); // SIGINT
+            signal(15, daemon_signal_handler); // SIGTERM
+
+            return start_daemon(force);
         } else {
             puts("Client not yet implemented");
         }

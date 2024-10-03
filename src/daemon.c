@@ -10,6 +10,33 @@
 #define BUFSIZE 1024
 #define SOCK_PATH "/home/lulonaut/trashsocket"
 
+void socket_loop(const int socket_fd) {
+    char buf[BUFSIZE];
+    while (1) {
+        puts("Waiting for connection...");
+
+        const int socket_connection = accept(socket_fd, NULL, NULL);
+        const int bytes_read = read(socket_connection, buf, BUFSIZE);
+        buf[bytes_read] = '\0';
+
+        printf("Received %d bytes\n", bytes_read);
+        if (bytes_read <= 0) {
+            close(socket_connection);
+            continue;
+        }
+
+        if (strncmp(buf, "exit", 4) == 0) {
+            puts("Exiting...");
+            close(socket_fd);
+            break;
+        }
+        buf[bytes_read] = '\0';
+        printf("%s\n", buf);
+
+        close(socket_connection);
+    }
+}
+
 int start_daemon(const int force) {
     // Check if the socket file already exists
     if (access(SOCK_PATH, F_OK) == 0) {
@@ -29,7 +56,7 @@ int start_daemon(const int force) {
     int socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (socket_fd < 0) {
         fputs("Failed to create socket", stderr);
-        exit(1);
+        return 1;
     }
 
     struct sockaddr_un sock_addr = {0};
@@ -41,16 +68,15 @@ int start_daemon(const int force) {
     }
     if (listen(socket_fd, 5) < 0) {
         fputs("Failed to listen on socket", stderr);
-        exit(1);
+        return 1;
     }
 
-    int socket_data;
-    while (1) {
-
-
-
-    }
-    // TODO read, client impl, signal handler -> delete socket file
-
+    socket_loop(socket_fd);
     return 0;
+}
+
+void daemon_signal_handler(const int sig) {
+    printf("Received signal %d, exiting...\n", sig);
+    unlink(SOCK_PATH);
+    exit(0);
 }
