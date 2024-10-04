@@ -1,5 +1,6 @@
 #include "daemon.h"
 
+#include <errno.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -21,12 +22,13 @@ void socket_loop(const int socket_fd) {
 
         printf("Received %d bytes\n", bytes_read);
         if (bytes_read <= 0) {
+            fputs("Received no useful data, closing connection", stderr);
             close(socket_connection);
             continue;
         }
 
         if (strncmp(buf, "exit", 4) == 0) {
-            puts("Exiting...");
+            puts("Exiting");
             close(socket_fd);
             break;
         }
@@ -53,7 +55,7 @@ int start_daemon(const int force) {
 
     fprintf(stderr, "Starting daemon at %s\n", SOCK_PATH);
 
-    int socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
+    const int socket_fd = socket(AF_UNIX, SOCK_STREAM, 0);
     if (socket_fd < 0) {
         fputs("Failed to create socket", stderr);
         return 1;
@@ -66,6 +68,7 @@ int start_daemon(const int force) {
         fputs("Failed to bind socket", stderr);
         exit(1);
     }
+
     if (listen(socket_fd, 5) < 0) {
         fputs("Failed to listen on socket", stderr);
         return 1;
@@ -76,7 +79,7 @@ int start_daemon(const int force) {
 }
 
 void daemon_signal_handler(const int sig) {
-    printf("Received signal %d, exiting...\n", sig);
+    printf("Received signal %d, exiting.\n", sig);
     unlink(SOCK_PATH);
     exit(0);
 }

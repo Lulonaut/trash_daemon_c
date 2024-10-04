@@ -12,8 +12,15 @@ int main(int argc, char *argv[]) {
                 force = 1;
             }
 
-            signal(2, daemon_signal_handler); // SIGINT
-            signal(15, daemon_signal_handler); // SIGTERM
+            struct sigaction sa = {0};
+            sa.sa_handler = daemon_signal_handler;
+            sa.sa_flags = SA_RESTART;
+
+            sigaction(SIGINT, &sa, NULL);
+            sigaction(SIGTERM, &sa, NULL);
+            // IDE restart
+            sigaction(SIGHUP, &sa, NULL);
+
 
             return start_daemon(force);
         } else {
